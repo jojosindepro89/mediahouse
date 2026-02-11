@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 60; // Revalidate every minute
+export const dynamic = "force-dynamic"; // Revalidate every minute
 
 export default async function NewsPage() {
     const posts = await prisma.post.findMany({

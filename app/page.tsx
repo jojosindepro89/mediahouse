@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Trophy, TrendingUp, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const latestPosts = await prisma.post.findMany({

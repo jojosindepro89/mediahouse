@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import { ShoppingBag } from "lucide-react";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function ShopPage() {
     const products = await prisma.product.findMany({

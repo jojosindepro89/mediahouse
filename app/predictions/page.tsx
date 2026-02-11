@@ -7,7 +7,7 @@ import PredictionCard from "@/components/PredictionCard";
 import SubscribeButton from "@/components/SubscribeButton";
 import { ShieldCheck } from "lucide-react";
 
-export const revalidate = 60; // Revalidate every minute
+export const dynamic = "force-dynamic"; // Revalidate every minute
 
 export default async function PredictionsPage() {
     const session = await getServerSession(authOptions);
