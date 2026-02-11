@@ -1,8 +1,11 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { Trophy, TrendingUp, Calendar, AlertCircle } from "lucide-react";
+
+export const revalidate = 0;
 
 export default async function DashboardPage() {
     const session = await getServerSession(authOptions);
@@ -11,166 +14,135 @@ export default async function DashboardPage() {
         redirect("/auth/login");
     }
 
-    // Fetch updated user data including subscription
+    // Admins have their own dashboard
+    if (session.user.role === "admin") {
+        redirect("/admin");
+    }
+
     const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { email: session.user.email! },
         include: {
             subscriptions: {
                 where: {
                     status: "active",
-                    endDate: { gte: new Date() },
+                    endDate: { gt: new Date() },
                 },
                 orderBy: { endDate: "desc" },
-                take: 1,
             },
-            orders: {
-                orderBy: { createdAt: "desc" },
-                include: {
-                    items: {
-                        include: { product: true }
-                    }
-                }
-            }
         },
     });
 
     const activeSubscription = user?.subscriptions[0];
     const isPremium = !!activeSubscription;
 
+    // Fetch premium predictions if user has active sub
+    const premiumPredictions = isPremium
+        ? await prisma.prediction.findMany({
+            where: {
+                isPremium: true,
+                status: "published",
+            },
+            orderBy: { date: "desc" },
+            take: 5,
+        })
+        : [];
+
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-12">
-            <div className="rounded-lg border border-[#333] bg-[#121212] p-8 shadow-lg">
-                <h1 className="mb-6 text-3xl font-bold text-[#D4AF37]">Dashboard</h1>
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <h1 className="mb-8 text-3xl font-bold text-[#F5F5F5]">My Dashboard</h1>
 
-                <div className="grid gap-8 md:grid-cols-2">
-                    {/* User Profile */}
-                    <div className="space-y-4 rounded-md bg-[#0B0B0B] p-6 shadow-sm ring-1 ring-[#333]">
-                        <h2 className="text-xl font-semibold text-[#F5F5F5]">Profile</h2>
-                        <div className="space-y-2">
-                            <p className="text-[#BDBDBD]">
-                                <span className="block text-xs font-medium uppercase text-[#666]">
-                                    Name
-                                </span>
-                                {user?.name}
-                            </p>
-                            <p className="text-[#BDBDBD]">
-                                <span className="block text-xs font-medium uppercase text-[#666]">
-                                    Email
-                                </span>
-                                {user?.email}
-                            </p>
-                            <p className="text-[#BDBDBD]">
-                                <span className="block text-xs font-medium uppercase text-[#666]">
-                                    Role
-                                </span>
-                                {user?.role}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Subscription Status */}
-                    <div className="space-y-4 rounded-md bg-[#0B0B0B] p-6 shadow-sm ring-1 ring-[#333]">
-                        <h2 className="text-xl font-semibold text-[#F5F5F5]">
-                            Subscription
-                        </h2>
+            <div className="grid gap-8 lg:grid-cols-3">
+                {/* Subscription Status Card */}
+                <div className="rounded-lg border border-[#333] bg-[#121212] p-6 lg:col-span-1">
+                    <h2 className="mb-4 text-xl font-semibold text-[#D4AF37]">Subscription Status</h2>
+                    {isPremium ? (
                         <div className="space-y-4">
-                            <div>
-                                <p className="text-[#BDBDBD]">
-                                    <span className="block text-xs font-medium uppercase text-[#666]">
-                                        Status
-                                    </span>
-                                    <span
-                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${isPremium
-                                            ? "bg-green-900 text-green-100"
-                                            : "bg-red-900 text-red-100"
-                                            }`}
-                                    >
-                                        {isPremium ? "Active" : "Inactive"}
-                                    </span>
-                                </p>
+                            <div className="flex items-center gap-3 text-green-500">
+                                <Trophy className="h-6 w-6" />
+                                <span className="font-medium">Active Member</span>
                             </div>
-
-                            {isPremium ? (
-                                <div>
-                                    <p className="text-[#BDBDBD]">
-                                        <span className="block text-xs font-medium uppercase text-[#666]">
-                                            Plan
-                                        </span>
-                                        {activeSubscription.plan}
-                                    </p>
-                                    <p className="text-[#BDBDBD]">
-                                        <span className="block text-xs font-medium uppercase text-[#666]">
-                                            Expires
-                                        </span>
-                                        {activeSubscription.endDate.toLocaleDateString()}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div>
-                                    <p className="text-sm text-[#BDBDBD]">
-                                        You don't have an active subscription.
-                                    </p>
-                                    <Link
-                                        href="/predictions"
-                                        className="mt-4 inline-block rounded-md bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#B5952F]"
-                                    >
-                                        Get Premium Tips
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Order History */}
-                <div className="md:col-span-2 space-y-4 rounded-md bg-[#0B0B0B] p-6 shadow-sm ring-1 ring-[#333]">
-                    <h2 className="text-xl font-semibold text-[#F5F5F5]">
-                        Order History
-                    </h2>
-                    {user?.orders && user.orders.length > 0 ? (
-                        <div className="overflow-x-auto text-[#BDBDBD]">
-                            <table className="w-full text-left text-sm">
-                                <thead className="border-b border-[#333] text-[#666]">
-                                    <tr>
-                                        <th className="pb-2">Order ID</th>
-                                        <th className="pb-2">Items</th>
-                                        <th className="pb-2">Total</th>
-                                        <th className="pb-2">Status</th>
-                                        <th className="pb-2">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#333]">
-                                    {user.orders.map((order) => (
-                                        <tr key={order.id}>
-                                            <td className="py-2">...{order.id.slice(-6)}</td>
-                                            <td className="py-2">
-                                                {order.items.map(i => `${i.quantity}x ${i.product.name}`).join(", ")}
-                                            </td>
-                                            <td className="py-2 font-bold text-[#D4AF37]">${order.total.toFixed(2)}</td>
-                                            <td className="py-2 capitalize">{order.status}</td>
-                                            <td className="py-2">{order.createdAt.toLocaleDateString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <p className="text-[#BDBDBD]">
+                                Plan: <span className="text-[#F5F5F5] font-bold">{activeSubscription.plan}</span>
+                            </p>
+                            <p className="text-[#BDBDBD]">
+                                Expires:{" "}
+                                <span className="text-[#F5F5F5]">
+                                    {activeSubscription.endDate.toLocaleDateString()}
+                                </span>
+                            </p>
+                            <Link
+                                href="/predictions"
+                                className="mt-4 block w-full rounded-md bg-[#D4AF37] px-4 py-2 text-center text-sm font-bold text-black hover:bg-[#B5952F]"
+                            >
+                                View Premium Tips
+                            </Link>
                         </div>
                     ) : (
-                        <p className="text-[#BDBDBD]">No orders found.</p>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 text-[#BDBDBD]">
+                                <AlertCircle className="h-6 w-6" />
+                                <span>No Active Subscription</span>
+                            </div>
+                            <p className="text-sm text-[#666]">
+                                Unlock expert predictions and increase your winning chances today.
+                            </p>
+                            <Link
+                                href="/predictions"
+                                className="mt-4 block w-full rounded-md bg-[#D4AF37] px-4 py-2 text-center text-sm font-bold text-black hover:bg-[#B5952F]"
+                            >
+                                Get Premium Integration
+                            </Link>
+                        </div>
                     )}
                 </div>
-            </div>
 
-            {user?.role === "admin" && (
-                <div className="mt-8">
-                    <Link
-                        href="/admin"
-                        className="inline-block rounded-md border border-[#D4AF37] px-4 py-2 text-sm font-semibold text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black"
-                    >
-                        Go to Admin Dashboard
-                    </Link>
+                {/* Content Area */}
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Premium Tips Preview */}
+                    {isPremium && (
+                        <div className="rounded-lg border border-[#333] bg-[#121212] p-6">
+                            <h2 className="mb-4 text-xl font-semibold text-[#F5F5F5]">
+                                Latest Premium Tips
+                            </h2>
+                            {premiumPredictions.length > 0 ? (
+                                <div className="space-y-4">
+                                    {premiumPredictions.map((pred) => (
+                                        <div
+                                            key={pred.id}
+                                            className="flex items-center justify-between border-b border-[#333] pb-4 last:border-0 last:pb-0"
+                                        >
+                                            <div>
+                                                <h3 className="font-medium text-[#D4AF37]">{pred.title}</h3>
+                                                <div className="flex items-center gap-2 text-sm text-[#666]">
+                                                    <Calendar className="h-3 w-3" />
+                                                    <span>{pred.date.toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                            <Link
+                                                href={`/predictions`}
+                                                className="text-sm font-semibold text-[#F5F5F5] hover:text-[#D4AF37]"
+                                            >
+                                                View &rarr;
+                                            </Link>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-[#BDBDBD]">No new premium tips available today.</p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Quick Stats / History Placeholder */}
+                    <div className="rounded-lg border border-[#333] bg-[#121212] p-6">
+                        <h2 className="mb-4 text-xl font-semibold text-[#F5F5F5]">Results History</h2>
+                        <div className="flex items-center justify-center py-8 text-[#666]">
+                            <TrendingUp className="mr-2 h-5 w-5" />
+                            <span>Your betting history will appear here.</span>
+                        </div>
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
-
     );
 }

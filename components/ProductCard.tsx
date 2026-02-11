@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 interface ProductProps {
     product: {
@@ -17,6 +18,7 @@ interface ProductProps {
 export default function ProductCard({ product }: ProductProps) {
     const images = JSON.parse(product.images) as string[];
     const mainImage = images[0] || "https://placehold.co/600x400/121212/D4AF37/png?text=No+Image";
+    const { addItem } = useCart();
 
     return (
         <div className="group relative flex flex-col overflow-hidden rounded-lg bg-[#121212] border border-[#333] shadow-md transition-all hover:-translate-y-1 hover:border-[#D4AF37]/50 hover:shadow-xl">
@@ -51,7 +53,14 @@ export default function ProductCard({ product }: ProductProps) {
                         className="relative z-10 flex items-center gap-2 rounded-md bg-[#D4AF37] px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#B5952F]"
                         onClick={(e) => {
                             e.preventDefault();
-                            alert(`Added ${product.name} to cart!`);
+                            addItem({
+                                id: product.id,
+                                name: product.name,
+                                price: product.price,
+                                image: mainImage,
+                            });
+                            // Optional: Add toast notification here
+                            alert("Added to cart!");
                         }}
                     >
                         <ShoppingCart className="h-4 w-4" />
