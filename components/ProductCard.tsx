@@ -33,11 +33,7 @@ export default function ProductCard({ product }: ProductProps) {
             </Link>
 
             <div className="flex flex-1 flex-col p-4">
-                <div className="mb-2">
-                    <span className="text-xs font-medium text-[#D4AF37] uppercase tracking-wider">
-                        {product.category || "General"}
-                    </span>
-                </div>
+
                 <h3 className="text-lg font-bold text-[#F5F5F5]">
                     <Link href={`/shop/${product.id}`}>
                         <span aria-hidden="true" className="absolute inset-0" />

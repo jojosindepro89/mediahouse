@@ -49,11 +49,7 @@ export default async function ProductPage(props: PageProps) {
 
                 {/* Product Details */}
                 <div>
-                    <div className="mb-2">
-                        <span className="text-sm font-medium text-[#D4AF37] uppercase tracking-wider">
-                            {product.category || "General"}
-                        </span>
-                    </div>
+
                     <h1 className="text-3xl font-bold text-[#F5F5F5] sm:text-4xl">{product.name}</h1>
                     <div className="mt-4 flex items-center">
                         <div className="flex items-center text-[#D4AF37]">
